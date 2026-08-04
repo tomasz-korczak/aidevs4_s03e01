@@ -1,14 +1,12 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 2.0.0
+- Version change: 2.0.0 → 3.0.0
 - Modified principles:
-  - I. One-Shot Console Execution → clarified: zero CLI args; input dir via JSON_DIR
-  - II. Flag Discovery Goal → redefined: flag captured when all JSON files are categorized
-  - III. OpenRouter LLM Integration → III. OpenRouter LLM Integration (AI ready, used when required)
-  - V. Simplicity → aligned with deferred/on-demand LLM use and JSON categorization flow
+  - II. Flag Discovery Goal → redefined: flag captured only when hub verify response contains {FLG:...}
+  - IV. Observable Progress → clarified: console and log file
 - Added sections: none
 - Removed sections: none
-- Follow-up TODOs: Align feature spec/plan/tasks/contracts with JSON_DIR, flag=all-categorized, no argv (see Next Actions)
+- Follow-up TODOs: Align feature 001 artifacts that still claim local categorization = flag (superseded for product success)
 -->
 
 # s03e01 CTF Constitution
@@ -27,15 +25,15 @@ Rationale: Configuration belongs in the environment, not in argv. One
 invocation performs the complete exercise run.
 
 ### II. Flag Discovery Goal
-The sole product goal is to obtain the challenge flag. At this stage the
-flag MUST be considered captured when every JSON file under `JSON_DIR` has
-been categorized (valid or invalid under the exercise rules). The
-application MUST complete categorization of all discoverable JSON files in
-the run and MUST treat successful full categorization as flag capture for
-this phase. Unrelated features MUST NOT be added.
+The sole product goal is to obtain the challenge flag. The flag MUST be
+considered captured only when the challenge hub verification response
+body contains a token matching `{FLG:...}`. Local categorization of JSON
+files (including OPERATOR notes checks) is a necessary step toward
+building the hub answer but MUST NOT by itself constitute flag capture.
+Unrelated features MUST NOT be added.
 
-Rationale: Success is defined by capturing the flag; full file
-categorization is the current capture condition.
+Rationale: Success is defined by capturing the flag from hub verification,
+not by completing local file classification alone.
 
 ### III. OpenRouter LLM Integration (AI ready, used when required)
 The application MUST remain AI-ready: when LLM capabilities are required,
@@ -52,7 +50,8 @@ unused AI readiness MUST NOT force calls on every run.
 ### IV. Observable Progress
 The application MUST log human-readable progress of major steps and
 inspection outcomes to the console (stdout for normal progress, stderr for
-errors). Logs MUST be sufficient to reconstruct which actions ran and why
+errors) and MUST also write equivalent application logs to a log file.
+Logs MUST be sufficient to reconstruct which actions ran and why
 the run succeeded or failed.
 
 Rationale: CTF debugging requires a clear trail of actions and results.
@@ -71,20 +70,23 @@ Rationale: This is a focused exercise, not a general-purpose product.
 - Entry point: console process with zero required CLI arguments.
 - Input directory: `JSON_DIR` environment variable (MUST be set to a usable
   directory path for a successful run).
-- Lifecycle: one process run = categorize all JSON files in `JSON_DIR` and
-  evaluate flag capture per Principle II.
-- Configuration: `JSON_DIR`, and when AI is required OpenRouter API key and
-  any challenge URLs/tokens, via environment (or non-committed local
-  config), not argv.
+- Lifecycle: one process run = categorize JSON files under `JSON_DIR`,
+  perform required challenge steps (including hub verify when in scope),
+  and evaluate flag capture per Principle II.
+- Configuration: `JSON_DIR`, OpenRouter API key when AI is required, hub
+  API key when hub verify is required, and any challenge URLs/tokens, via
+  environment (or non-committed local config), not argv.
 - Exit: non-zero exit code on unrecoverable failure (including missing or
-  unusable `JSON_DIR`); zero when the flag is obtained (all JSON files
-  categorized) or when the run completes its defined success path.
+  unusable `JSON_DIR`, missing required secrets, LLM/hub hard failures, or
+  hub response without `{FLG:...}`); zero only when the flag token is
+  obtained per Principle II.
 
 ## Scope Boundaries
 
-In scope: reading JSON files from `JSON_DIR`, categorization/validation,
-result inspection, console reporting, flag capture when all files are
-categorized, OpenRouter LLM use when required.
+In scope: reading JSON files from `JSON_DIR`, categorization/validation
+(including notes checks when required), result inspection, console
+reporting, hub verification when required, flag capture per Principle II,
+OpenRouter LLM use when required.
 
 Out of scope: CLI argument parsing for the input directory, interactive
 REPL modes, web UI, daemon/long-running servers, multi-user features, and
@@ -103,4 +105,4 @@ work as complete. Feature artifacts that conflict with this constitution
 MUST be amended; the constitution MUST NOT be diluted to match conflicting
 specs.
 
-**Version**: 2.0.0 | **Ratified**: 2026-08-04 | **Last Amended**: 2026-08-04
+**Version**: 3.0.0 | **Ratified**: 2026-08-04 | **Last Amended**: 2026-08-04
