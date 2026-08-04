@@ -2,11 +2,11 @@
 
 **Branch**: `001-corrupt-json-report` | **Date**: 2026-08-04 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `/specs/001-corrupt-json-report/spec.md` plus plan-time domain and stack directives from the operator.
+**Input**: Feature specification from `/specs/001-corrupt-json-report/spec.md` aligned to constitution v2.0.0.
 
 ## Summary
 
-One-shot Spring Boot console application (`pl.tomaszko:s03e01`) that takes an input directory as the first program argument, scans top-level `*.json` sensor reading files, validates each against fixed sensor-type and reading-range rules, and reports invalid files with tagged console/file log lines (`PARSE:` vs `SCOPE:`). Spring AI is on the classpath for future use but is not invoked in this feature. Maven build targets JDK 23 (`C:\tools\jdk-23.0.2`).
+One-shot Spring Boot console application (`pl.tomaszko:s03e01`) that reads the input directory from environment variable `JSON_DIR` (zero CLI args), categorizes top-level `*.json` sensor files with fixed schema/sensor rules, reports `PARSE:` / `SCOPE:` lines, and on successful full categorization of ≥1 file logs `FLAG: captured` and exits 0. Spring AI is on the classpath (AI ready) but is not invoked. Maven build targets JDK 23 (`C:\tools\jdk-23.0.2`).
 
 ## Technical Context
 
@@ -20,11 +20,11 @@ One-shot Spring Boot console application (`pl.tomaszko:s03e01`) that takes an in
 
 **Target Platform**: Windows/Linux console JVM process
 
-**Project Type**: Maven single-module Spring Boot console application (`spring-boot-starter`; no web server required for this feature)
+**Project Type**: Maven single-module Spring Boot console application (`spring-boot-starter`; no web server required)
 
-**Performance Goals**: Fully scan ≥1,000 JSON files in one run with brief start/finish progress only
+**Performance Goals**: Fully categorize ≥1,000 JSON files in one run with brief start/finish progress only
 
-**Constraints**: Directory path from argv[0] (first program parameter); no interactive prompts; exit 0 after completed scan even if invalid files found; exit non-zero only for unrecoverable setup failures; log to console and file
+**Constraints**: `JSON_DIR` env only; zero CLI args; exit 0 + `FLAG: captured` after categorizing ≥1 `.json` file; non-zero if `JSON_DIR` bad, any argv, or zero `.json` files; log to console and file
 
 **Scale/Scope**: Thousands of sensor JSON files; any subset may be invalid
 
@@ -34,15 +34,15 @@ One-shot Spring Boot console application (`pl.tomaszko:s03e01`) that takes an in
 
 | Gate | Constitution expectation | Plan stance |
 |------|--------------------------|-------------|
-| I. One-Shot Console Execution | No CLI parameters | **Justified violation**: operator requires directory as first program parameter. Still one-shot, non-interactive. |
-| II. Flag Discovery Goal | Capture challenge flag | **Deferred / out of feature scope**: this feature validates sensor JSON; flag/CTF flow is not part of this plan. |
-| III. OpenRouter LLM Integration | LLM via OpenRouter now | **Justified deferral**: Spring AI dependency required for future functionalities; **no LLM integration in this feature**. OpenRouter wiring is out of scope here. |
-| IV. Observable Progress | Human-readable console progress | **Pass**: start/finish (+ optional totals), tagged invalid-file lines; also file logging. |
-| V. Simplicity | Smallest workable design | **Pass with note**: Spring Boot + Spring AI BOM adds framework weight for future AI work; no multi-command CLI, no web UI, no daemon. |
-| Runtime: zero argv | Env/config only | **Justified violation**: argv directory (see Complexity Tracking). |
-| Scope: no CLI parsing | Forbidden | **Justified violation**: single required path argument only. |
+| I. One-Shot Console Execution | No CLI params; dir via `JSON_DIR` | **Pass** |
+| II. Flag Discovery Goal | Flag when all JSON files categorized | **Pass** — `FLAG: captured` after ≥1 file fully categorized |
+| III. OpenRouter LLM (AI ready, when required) | AI ready; call only when required | **Pass** — Spring AI on classpath; no calls this feature |
+| IV. Observable Progress | Human-readable progress | **Pass** |
+| V. Simplicity | Smallest workable design | **Pass** |
+| Runtime | `JSON_DIR`; zero argv | **Pass** |
+| Scope | No CLI dir parsing | **Pass** |
 
-**Gate result**: Proceed with documented justifications. Recommend amending constitution in a later `/speckit-constitution` pass to match argv directory input, sensor-validation product goal, and deferred LLM usage.
+**Gate result**: Pass against constitution v2.0.0.
 
 ## Project Structure
 
@@ -55,7 +55,7 @@ specs/001-corrupt-json-report/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
-└── tasks.md              # created by /speckit-tasks (not this command)
+└── tasks.md
 ```
 
 ### Source Code (repository root)
@@ -65,24 +65,24 @@ pom.xml
 src/main/java/pl/tomaszko/s03e01/
 ├── S03e01Application.java
 ├── config/
-│   └── AppProperties.java          # optional; primary input remains argv
+│   └── JsonDirProperties.java      # reads JSON_DIR
 ├── runner/
-│   └── SensorScanRunner.java       # ApplicationRunner / CommandLineRunner
+│   └── SensorScanRunner.java
 ├── scan/
 │   ├── JsonFileScanner.java
 │   └── ScanSummary.java
 ├── model/
-│   └── SensorReading.java          # Jackson DTO for exact property set
+│   └── SensorReading.java
 ├── validation/
 │   ├── SensorType.java
 │   ├── ReadingField.java
 │   ├── ReadingRanges.java
 │   └── SensorReadingValidator.java
 └── report/
-    └── InvalidFileReporter.java    # PARSE:/SCOPE: lines via logger
+    └── InvalidFileReporter.java    # PARSE:/SCOPE:/FLAG:
 src/main/resources/
 ├── application.properties
-└── logback-spring.xml              # or logging.* in application.properties
+└── logback-spring.xml
 src/test/java/pl/tomaszko/s03e01/
 ├── validation/
 │   └── SensorReadingValidatorTest.java
@@ -91,17 +91,16 @@ src/test/java/pl/tomaszko/s03e01/
 └── runner/
     └── SensorScanRunnerIT.java
 src/test/resources/fixtures/
-└── sensors/                        # valid / invalid sample JSON files
+└── sensors/
 ```
 
-**Structure Decision**: Single Maven module at repository root with package `pl.tomaszko.s03e01`, layered by scan / model / validation / report. No frontend or multi-module split.
+**Structure Decision**: Single Maven module at repository root; package `pl.tomaszko.s03e01`.
 
 ## Complexity Tracking
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| First program parameter for input directory | Operator directive for this exercise run | Env-only path conflicts with stated run mode |
-| Spring Boot application | Required stack; annotation-driven lifecycle | Plain `main` lacks agreed Spring/Spring AI baseline |
-| Spring AI on classpath without LLM calls | Required for future functionalities | Adding AI later would force larger retrofit; BOM now is cheaper |
-| Extra JSON properties mark file invalid | Operator domain rule | Spec clarification “ignore extras” superseded by plan input |
-| Constitution flag/OpenRouter goals unused | Current feature is sensor file validation | Implementing CTF/OpenRouter now expands scope beyond stated goal |
+> No constitution violations. Optional notes only:
+
+| Note | Why |
+|------|-----|
+| Spring Boot + Spring AI BOM | Required stack / AI readiness without LLM calls this phase |
+| Closed schema (reject extras) | Domain rule from operator |

@@ -18,11 +18,9 @@
 - **Rationale**: Matches one-shot console lifecycle; uses Spring annotations (`@SpringBootApplication`, `@Component`, `@Service`) as requested.
 - **Alternatives considered**: Web MVC controller (unnecessary); plain Java main without Spring (violates stack requirement).
 
-## Decision: Directory from first program argument
-
-- **Decision**: Require exactly one meaningful argument: input directory path. Missing/invalid path → log error, non-zero exit. Prefer ignoring extra args or treating only the first as directory.
-- **Rationale**: Explicit operator plan input. Supersedes spec FR-001/FR-002 and constitution “no argv” for this feature (documented in plan Complexity Tracking).
-- **Alternatives considered**: Environment variable only (rejected by operator).
+- **Decision**: Directory from `JSON_DIR` only; zero CLI args (any argv → non-zero). Flag = all `.json` categorized with ≥1 file → log `FLAG: captured`, exit 0. Zero `.json` → non-zero, no flag. Non-object root → `PARSE:`. Spring AI on classpath, no LLM calls this feature.
+- **Rationale**: Constitution v2.0.0 alignment (operator Q1–Q7 remediation).
+- **Alternatives considered**: argv directory (rejected by constitution); empty dir as flag capture (rejected Q3:B).
 
 ## Decision: Exact sensor JSON schema and validation semantics
 

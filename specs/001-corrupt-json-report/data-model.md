@@ -74,10 +74,11 @@ In-memory run totals (for finish progress).
 
 1. Discover only top-level `*.json` in the directory argument (non-recursive). Non-`.json` files are ignored.
 2. Attempt deserialize/bind to the closed `SensorReading` schema (fail on unknown properties / wrong types).
-3. If deserialize/bind fails → `PARSE_INVALID`.
+3. If deserialize/bind fails (including wrong types or non-object root) → `PARSE_INVALID`.
 4. Else validate closed property set, non-empty `operator_notes`, sensor tokens, and reading zero/range rules → on any failure `SCOPE_INVALID`.
 5. Emit at most one tagged report line per invalid file using basename only.
-6. Continue until all discovered files are classified (no retry).
+6. Continue until all discovered files are categorized (no retry).
+7. If zero `.json` files discovered → setup failure (no flag). If ≥1 and all categorized → `FLAG: captured`.
 
 ## State Transitions
 

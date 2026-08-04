@@ -23,46 +23,56 @@ mvn -q -DskipTests package
 
 ## Validation fixtures
 
-Create a temp directory with at least:
+Create a temp directory with at least one `.json` file, including:
 
-1. **Valid** — `sensor_type` matches non-zero in-range readings; inactive readings are `0`; exact property set from [data-model.md](./data-model.md).
-2. **SCOPE invalid (type mismatch)** — e.g. `sensor_type=water` with `temperature_K=700`.
-3. **SCOPE invalid (out of range)** — e.g. `sensor_type=temperature` with `temperature_K=0` or `900`.
-4. **SCOPE invalid (extra property)** — known fields plus an unknown key.
-5. **PARSE invalid** — truncated / non-JSON content with `.json` extension.
+1. **Valid** — per [data-model.md](./data-model.md).
+2. **SCOPE invalid** — type mismatch and/or out of range and/or extra property.
+3. **PARSE invalid** — truncated JSON, wrong field types, or non-object root.
 
 ## Run
 
 ```powershell
-mvn -q spring-boot:run "-Dspring-boot.run.arguments=C:\path\to\fixtures"
+$env:JSON_DIR = "C:\path\to\fixtures"
+mvn -q spring-boot:run
 ```
 
 Or:
 
 ```powershell
-java -jar target\s03e01-*.jar C:\path\to\fixtures
+$env:JSON_DIR = "C:\path\to\fixtures"
+java -jar target\s03e01-*.jar
 ```
+
+Do **not** pass CLI arguments.
 
 ## Expected outcomes
 
-- Start progress mentions the directory.
-- Each invalid fixture appears once as `PARSE: <name>` or `SCOPE: <name>` per [contracts/console-scan.md](./contracts/console-scan.md).
-- Valid fixture is not listed as PARSE/SCOPE.
+- Start progress mentions `JSON_DIR`.
+- Invalid fixtures appear once as `PARSE: <name>` or `SCOPE: <name>`.
+- Valid fixtures are not listed as PARSE/SCOPE.
 - Finish progress (optional totals) appears.
-- Process exit code `0` after a completed scan.
-- Same problem lines appear in the configured log file (console + file logging).
+- Line `FLAG: captured` appears.
+- Exit code `0`.
+- Same lines in the log file.
 
 ## Failure checks
 
 ```powershell
+Remove-Item Env:JSON_DIR -ErrorAction SilentlyContinue
 java -jar target\s03e01-*.jar
-# missing argument → non-zero exit, clear error
+# missing JSON_DIR → non-zero, no FLAG
 
-java -jar target\s03e01-*.jar C:\path\to\fixtures C:\extra
-# more than one argument → non-zero exit, clear error
+$env:JSON_DIR = "C:\path\to\fixtures"
+java -jar target\s03e01-*.jar extra
+# any CLI arg → non-zero, no FLAG
 
-java -jar target\s03e01-*.jar C:\path\does-not-exist
-# non-zero exit
+$env:JSON_DIR = "C:\path\does-not-exist"
+java -jar target\s03e01-*.jar
+# unusable JSON_DIR → non-zero, no FLAG
+
+$env:JSON_DIR = "C:\path\to\empty-dir"
+java -jar target\s03e01-*.jar
+# zero .json files → non-zero, no FLAG
 ```
 
 ## Tests
@@ -70,5 +80,3 @@ java -jar target\s03e01-*.jar C:\path\does-not-exist
 ```powershell
 mvn test
 ```
-
-Unit tests should cover validator matrix (token sets × zero/range). Integration test should run the scanner against `src/test/resources/fixtures/sensors`.
