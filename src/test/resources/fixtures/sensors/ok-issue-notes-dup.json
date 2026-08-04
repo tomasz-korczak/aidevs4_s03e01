@@ -1,0 +1,10 @@
+{
+  "sensor_type": "humidity/temperature/water",
+  "timestamp": 1774007714,
+  "temperature_K": 680,
+  "pressure_bar": 0,
+  "water_level_meters": 9.5,
+  "voltage_supply_v": 0,
+  "humidity_percent": 70.0,
+  "operator_notes": "Readings look nominal but I suspect intermittent sensor drift and possible calibration failure; treat this capture as unreliable."
+}

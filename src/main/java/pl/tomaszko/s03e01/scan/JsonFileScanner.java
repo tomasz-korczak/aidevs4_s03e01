@@ -56,23 +56,24 @@ public class JsonFileScanner {
 
     private void categorize(Path file, ScanSummary summary) {
         String basename = file.getFileName().toString();
+        String stem = ClassifiedFile.stemOf(basename);
         try {
             JsonNode root = objectMapper.readTree(file.toFile());
             if (root == null || !root.isObject()) {
                 reporter.parse(basename);
-                summary.incrementParseInvalid();
+                summary.addParseInvalid(new ClassifiedFile(basename, stem, FileCategory.PARSE, null));
                 return;
             }
             SensorReading reading = objectMapper.treeToValue(root, SensorReading.class);
             if (reading == null || !validator.isValid(reading)) {
                 reporter.scope(basename);
-                summary.incrementScopeInvalid();
+                summary.addScopeInvalid(new ClassifiedFile(basename, stem, FileCategory.SCOPE, reading));
                 return;
             }
-            summary.incrementValid();
+            summary.addValid(new ClassifiedFile(basename, stem, FileCategory.VALID, reading));
         } catch (Exception ex) {
             reporter.parse(basename);
-            summary.incrementParseInvalid();
+            summary.addParseInvalid(new ClassifiedFile(basename, stem, FileCategory.PARSE, null));
         }
     }
 }

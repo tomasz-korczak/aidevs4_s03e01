@@ -17,7 +17,19 @@ public class InvalidFileReporter {
         log.warn("SCOPE: {}", basename);
     }
 
+    public void operator(String basename) {
+        log.warn("OPERATOR: {}", basename);
+    }
+
     public void flagCaptured() {
         log.info("FLAG: captured");
+    }
+
+    public void flagToken(String token) {
+        log.info("FLAG: {}", token);
+    }
+
+    public void error(String detail) {
+        log.error("ERROR: {}", detail);
     }
 }
